@@ -1,0 +1,219 @@
+<html>
+<head>
+<title>Movingness</title>
+</head>
+<body>
+<script>
+
+	function HexGrid()
+	{
+		var canvas = document.createElement('canvas');
+		canvas.id     = "CursorLayer";
+		canvas.width  = 1224;
+		canvas.height = 768;
+		canvas.style.zIndex   = 8;
+		canvas.style.position = "absolute";
+		canvas.style.left = "0 px";
+		canvas.style.top = "0 px";
+		canvas.style.border   = "0px solid";
+		canvas.style.margin   = "0px";
+		
+		document.body.appendChild(canvas);
+		document.body.style.margin = "0px";
+
+		var ctx = canvas.getContext("2d");
+		ctx.imageSmoothingEnabled = true;
+
+		var hex_size = 100;
+
+		var selected_hex = null;
+
+		// trig lookups to clean the code up
+		var mc = [], ms = [];
+
+		for (var i = 0; i < 6; i++)
+		{
+			mc.push(Math.cos(i * Math.PI / 3 + Math.PI / 2));
+			ms.push(Math.sin(i * Math.PI / 3 + Math.PI / 2));
+		}
+
+
+
+		function cube_to_hex(cube)
+		{
+			var q = cube.cx
+			var r = cube.cz
+			return {q: q, r: r};
+		}
+
+		function hex_to_cube(hex)
+		{
+			var x = hex.q
+			var z = hex.r
+			var y = -x-z
+			return {cx: x, cy: y, cz: z};
+		}
+
+		function cube_round(cube)
+		{
+			var rx = Math.round(cube.cx)
+			var ry = Math.round(cube.cy)
+			var rz = Math.round(cube.cz)
+
+			var x_diff = Math.abs(rx - cube.cx)
+			var y_diff = Math.abs(ry - cube.cy)
+			var z_diff = Math.abs(rz - cube.cz)
+
+			if (x_diff > y_diff && x_diff > z_diff)
+			{
+				rx = -ry-rz;
+			}
+			else if (y_diff > z_diff)
+			{
+				ry = -rx-rz;
+			}
+			else
+			{
+				rz = -rx-ry;
+			}
+
+			return {cx: rx, cy: ry, cz: rz};
+		}
+
+		function hex_round(hex)
+		{
+    		return cube_to_hex(cube_round(hex_to_cube(hex)))
+		}
+
+		var cam_x = 0, cam_y = 0;
+		function pixel_to_hex(x, y)
+		{
+			q = ((x-cam_x) * Math.sqrt(3)/3 - (y-cam_y) / 3) / hex_size;
+			r = (y-cam_y) * 2/3 / hex_size;
+			return hex_round({q: q, r: r})
+		}
+
+		function hex_to_pixel(hex)
+		{
+			x = hex_size * Math.sqrt(3) * (hex.q + hex.r/2);
+			y = hex_size * 3/2 * hex.r;
+			return {x: x+cam_x, y: y+cam_y};
+		}
+
+		function draw_hex(x,y)
+		{
+			var Xcenter = x,
+				Ycenter = y;
+
+			ctx.beginPath();
+			ctx.moveTo (Xcenter +  hex_size * mc[0], Ycenter +  hex_size *  ms[0]);          
+
+			for (var i = 1; i < 6; i++) {
+				ctx.lineTo (Xcenter + hex_size * mc[i], Ycenter + hex_size * ms[i]);
+			}
+
+			ctx.closePath();
+		}
+
+		function draw_hex_outline(x,y)
+		{
+			draw_hex(x,y);
+			ctx.strokeStyle = "#000000";
+			ctx.lineWidth = 0.5;
+			ctx.stroke();
+		}
+
+		function draw_hex_filled(x,y)
+		{
+			draw_hex(x,y);
+			ctx.fillStyle = "#F48FB1";
+			ctx.fill();
+		}
+
+		function clear_canvas()
+		{
+			ctx.clearRect(0,0,canvas.width,canvas.height);
+		}
+
+		var orig_cam_x = 0;
+		var orig_cam_y = 0;
+		var mousedown_x = 0;
+		var mousedown_y = 0;
+		var mousedown = false;
+
+		canvas.onmousedown = function(event)
+		{
+			orig_cam_x = cam_x;
+			orig_cam_y = cam_y;
+			mousedown_x = event.clientX;
+			mousedown_y = event.clientY;
+			mousedown = true;
+		}
+
+		canvas.onmouseup = function(event)
+		{
+			mousedown = false;
+		}
+
+		canvas.onmousemove = function(event)
+		{
+			if (mousedown)
+			{
+				cam_x = orig_cam_x + (event.clientX - mousedown_x);
+				cam_y = orig_cam_y + (event.clientY - mousedown_y);
+			}
+			selected_hex = pixel_to_hex(event.clientX, event.clientY);
+		}
+
+		canvas.onmouseout = function(event)
+		{
+			selected_hex = null;
+		}
+
+		this.render = function() {
+			clear_canvas();
+
+			if (selected_hex)
+			{
+				var p = hex_to_pixel(selected_hex)
+				draw_hex_filled(p.x, p.y);
+			}
+
+			var a = hex_to_pixel({q:0, r:1})
+			var b = hex_to_pixel({q:0, r:2})
+			var c = hex_to_pixel({q:1, r:1})
+			draw_hex_outline(a.x,a.y);
+			draw_hex_outline(b.x,b.y);
+			draw_hex_outline(c.x,c.y);
+		}
+
+		return this;
+	}
+
+	function App()
+	{
+		var grid = HexGrid();
+
+		this.render = function() {
+			grid.render();
+		}
+		return this;
+	}
+
+
+	(function () {
+
+		var app = new App();
+
+		function main() {
+			window.requestAnimationFrame( main );
+
+			app.render();
+		}
+
+		main();
+	})();
+
+</script>
+</body>
+</html>
