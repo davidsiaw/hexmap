@@ -8,9 +8,7 @@
 	function HexGrid()
 	{
 		var canvas = document.createElement('canvas');
-		canvas.id     = "CursorLayer";
-		canvas.width  = 1224;
-		canvas.height = 768;
+		canvas.id = "CursorLayer";
 		canvas.style.zIndex   = 8;
 		canvas.style.position = "absolute";
 		canvas.style.left = "0 px";
@@ -24,6 +22,7 @@
 		var ctx = canvas.getContext("2d");
 		ctx.imageSmoothingEnabled = true;
 
+		var debug_overdraw = false;
 		var hex_size = 100;
 
 		var selected_hex = null;
@@ -36,7 +35,6 @@
 			mc.push(Math.cos(i * Math.PI / 3 + Math.PI / 2));
 			ms.push(Math.sin(i * Math.PI / 3 + Math.PI / 2));
 		}
-
 
 
 		function cube_to_hex(cube)
@@ -130,6 +128,30 @@
 			ctx.fill();
 		}
 
+		function draw_hex_image(x,y,image)
+		{
+			ctx.save();
+			draw_hex(x,y);
+			ctx.clip();
+			var newImg = new Image;
+			newImg.onload = function() {
+			}
+			newImg.src = image;
+			ctx.drawImage(newImg,x- newImg.width/2,y - newImg.height/2);
+			ctx.restore();
+		}
+
+		function draw_hex_coord_label(x,y)
+		{
+			var font_size = Math.floor(hex_size/3)
+			ctx.font = font_size + "px Arial";
+			var hex = pixel_to_hex(x,y);
+			var text = "" + hex.q + ","+ hex.r;
+			var textsize = ctx.measureText(text);
+			ctx.strokeStyle = "#000000";
+			ctx.strokeText(text, x-textsize.width/2, y+font_size/3);
+		}
+
 		function clear_canvas()
 		{
 			ctx.clearRect(0,0,canvas.width,canvas.height);
@@ -140,6 +162,18 @@
 		var mousedown_x = 0;
 		var mousedown_y = 0;
 		var mousedown = false;
+
+		function resize()
+		{
+			var w = Math.max(document.documentElement.clientWidth, window.innerWidth || 0)
+			var h = Math.max(document.documentElement.clientHeight, window.innerHeight || 0)
+			canvas.width = w-1;
+			canvas.height = h-1;
+		}
+
+		resize();
+
+		document.body.onresize = resize;
 
 		canvas.onmousedown = function(event)
 		{
@@ -173,18 +207,40 @@
 		this.render = function() {
 			clear_canvas();
 
+
+			var topleft = pixel_to_hex(0,0);
+			var topright = pixel_to_hex(canvas.width-0,0);
+			var bottomleft = pixel_to_hex(0,canvas.height-0);
+
 			if (selected_hex)
 			{
-				var p = hex_to_pixel(selected_hex)
+				var p = hex_to_pixel(selected_hex);
 				draw_hex_filled(p.x, p.y);
 			}
 
-			var a = hex_to_pixel({q:0, r:1})
-			var b = hex_to_pixel({q:0, r:2})
-			var c = hex_to_pixel({q:1, r:1})
-			draw_hex_outline(a.x,a.y);
-			draw_hex_outline(b.x,b.y);
-			draw_hex_outline(c.x,c.y);
+			if (debug_overdraw)
+			{
+				var push_in = 200;
+				topleft = pixel_to_hex(push_in,push_in);
+				topright = pixel_to_hex(canvas.width-push_in,push_in);
+				bottomleft = pixel_to_hex(push_in,canvas.height-push_in);
+
+				ctx.strokeStyle = "#00ff00";
+				ctx.lineWidth = 0.5;
+				ctx.strokeRect(push_in,push_in,canvas.width-push_in*2,canvas.height-push_in*2);
+			}
+
+
+			for (var col = topleft.q-1; col <= topright.q; col++)
+			{
+				for (var cell = topleft.r-1; cell <= bottomleft.r+1; cell++)
+				{
+					var a = hex_to_pixel({q:col - Math.floor((cell - topleft.r) / 2), r:cell})
+					draw_hex_outline(a.x,a.y);
+					//draw_hex_coord_label(a.x,a.y);
+				}
+			}
+
 		}
 
 		return this;
