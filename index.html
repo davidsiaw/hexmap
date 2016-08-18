@@ -25,6 +25,7 @@
 		var debug_overdraw = false;
 		var hex_size = 100;
 
+		var hovered_hex = null;
 		var selected_hex = null;
 
 		// trig lookups to clean the code up
@@ -98,33 +99,33 @@
 			return {x: x+cam_x, y: y+cam_y};
 		}
 
-		function draw_hex(x,y)
+		function draw_hex(x,y,size=hex_size)
 		{
 			var Xcenter = x,
 				Ycenter = y;
 
 			ctx.beginPath();
-			ctx.moveTo (Xcenter +  hex_size * mc[0], Ycenter +  hex_size *  ms[0]);          
+			ctx.moveTo (Xcenter +  size * mc[0], Ycenter +  size *  ms[0]);          
 
 			for (var i = 1; i < 6; i++) {
-				ctx.lineTo (Xcenter + hex_size * mc[i], Ycenter + hex_size * ms[i]);
+				ctx.lineTo (Xcenter + size * mc[i], Ycenter + size * ms[i]);
 			}
 
 			ctx.closePath();
 		}
 
-		function draw_hex_outline(x,y)
+		function draw_hex_outline(x,y,color="#000000",size=hex_size)
 		{
-			draw_hex(x,y);
+			draw_hex(x,y,size);
 			ctx.strokeStyle = "#000000";
 			ctx.lineWidth = 0.5;
 			ctx.stroke();
 		}
 
-		function draw_hex_filled(x,y)
+		function draw_hex_filled(x,y,color="#F48FB1")
 		{
 			draw_hex(x,y);
-			ctx.fillStyle = "#F48FB1";
+			ctx.fillStyle = color;
 			ctx.fill();
 		}
 
@@ -162,6 +163,7 @@
 		var mousedown_x = 0;
 		var mousedown_y = 0;
 		var mousedown = false;
+		var moved_while_mousedown = false;
 
 		function resize()
 		{
@@ -182,26 +184,33 @@
 			mousedown_x = event.clientX;
 			mousedown_y = event.clientY;
 			mousedown = true;
+			moved_while_mousedown = false;
 		}
 
 		canvas.onmouseup = function(event)
 		{
 			mousedown = false;
+			if (!moved_while_mousedown)
+			{
+				selected_hex = pixel_to_hex(event.clientX, event.clientY);
+			}
 		}
 
 		canvas.onmousemove = function(event)
 		{
 			if (mousedown)
 			{
+				moved_while_mousedown = true;
 				cam_x = orig_cam_x + (event.clientX - mousedown_x);
 				cam_y = orig_cam_y + (event.clientY - mousedown_y);
 			}
-			selected_hex = pixel_to_hex(event.clientX, event.clientY);
+			hovered_hex = pixel_to_hex(event.clientX, event.clientY);
 		}
 
 		canvas.onmouseout = function(event)
 		{
-			selected_hex = null;
+			moved_while_mousedown = true;
+			hovered_hex = null;
 		}
 
 		this.render = function() {
@@ -215,8 +224,15 @@
 			if (selected_hex)
 			{
 				var p = hex_to_pixel(selected_hex);
-				draw_hex_filled(p.x, p.y);
+				draw_hex_filled(p.x, p.y, "#D1C4E9");
 			}
+
+			if (hovered_hex)
+			{
+				var p = hex_to_pixel(hovered_hex);
+				draw_hex_outline(p.x, p.y, "#ff0000", 90);
+			}
+
 
 			if (debug_overdraw)
 			{
