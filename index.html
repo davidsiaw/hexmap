@@ -99,10 +99,12 @@
 			return {x: x+cam_x, y: y+cam_y};
 		}
 
-		function draw_hex(x,y,size=hex_size)
+		function draw_hex(x,y,size)
 		{
 			var Xcenter = x,
 				Ycenter = y;
+
+			size = size || hex_size;
 
 			ctx.beginPath();
 			ctx.moveTo (Xcenter +  size * mc[0], Ycenter +  size *  ms[0]);          
@@ -114,16 +116,19 @@
 			ctx.closePath();
 		}
 
-		function draw_hex_outline(x,y,color="#000000",size=hex_size)
+		function draw_hex_outline(x,y,color,size)
 		{
+			color = color || "#000000"
+			size = size || hex_size;
 			draw_hex(x,y,size);
 			ctx.strokeStyle = "#000000";
 			ctx.lineWidth = 0.5;
 			ctx.stroke();
 		}
 
-		function draw_hex_filled(x,y,color="#F48FB1")
+		function draw_hex_filled(x,y,color)
 		{
+			color = color || "#F48FB1"
 			draw_hex(x,y);
 			ctx.fillStyle = color;
 			ctx.fill();
@@ -200,7 +205,7 @@
 		{
 			if (mousedown)
 			{
-				moved_while_mousedown = true;
+				moved_while_mousedown = Math.abs(event.clientX - mousedown_x) > 3 && Math.abs(event.clientY - mousedown_y) > 3;
 				cam_x = orig_cam_x + (event.clientX - mousedown_x);
 				cam_y = orig_cam_y + (event.clientY - mousedown_y);
 			}
@@ -225,6 +230,7 @@
 			{
 				var p = hex_to_pixel(selected_hex);
 				draw_hex_filled(p.x, p.y, "#D1C4E9");
+				draw_hex_coord_label(p.x,p.y);
 			}
 
 			if (hovered_hex)
