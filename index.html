@@ -218,6 +218,60 @@
 			hovered_hex = null;
 		}
 
+		canvas.ontouchstart = function(event)
+		{
+			event.preventDefault();
+			var touches = event.changedTouches;
+
+			console.log(touches)
+
+			orig_cam_x = cam_x;
+			orig_cam_y = cam_y;
+			mousedown_x = touches[0].pageX;
+			mousedown_y = touches[0].pageY;
+			mousedown = true;
+			moved_while_mousedown = false;
+		}
+
+		canvas.ontouchend = function(event)
+		{
+			event.preventDefault();
+			var touches = event.changedTouches;
+
+			console.log(touches)
+
+			mousedown = false;
+			if (!moved_while_mousedown)
+			{
+				selected_hex = pixel_to_hex(touches[0].pageX, touches[0].pageY);
+			};
+			
+		}
+
+		canvas.ontouchmove = function(event)
+		{
+			event.preventDefault();
+			var touches = event.changedTouches;
+
+			console.log(touches)
+			
+			if (mousedown)
+			{
+				moved_while_mousedown = Math.abs(touches[0].pageX - mousedown_x) > 3 && Math.abs(touches[0].pageY - mousedown_y) > 3;
+				cam_x = orig_cam_x + (touches[0].pageX - mousedown_x);
+				cam_y = orig_cam_y + (touches[0].pageY- mousedown_y);
+			}
+		}
+
+		canvas.ontouchcancel = function(event)
+		{
+			event.preventDefault();
+			mousedown = false;
+			
+		}
+
+
+
 		this.render = function() {
 			clear_canvas();
 
